@@ -11,8 +11,8 @@
 #import manejoArchivos
 #from estructuras import hm_operaciones, hm_procesos, hm_paquete
 
-archivoSQL = 'fuentesSQL.pkb'
-archivoExcel = "matrizCRUD.xlsx"
+archivoSQL   = 'util_fuentesSQL.pkb'
+archivoExcel = "util_matrizCRUD.xlsx"
 
 def main():     
     global hm_paquete    
