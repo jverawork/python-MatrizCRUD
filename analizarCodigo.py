@@ -1,16 +1,6 @@
 import re
-import pyparsing as pp
+import buscarOperaciones
 from tip_estructuras import hm_operaciones, hm_procesos, hm_paquete
-
-def limpiar_comentarios(textosql):
-    sql_single_line_comment = '--' + pp.rest_of_line
-    sql_multi_line_comment = pp.c_style_comment
-    comment_remover = (
-        # parse quoted strings separately so that they don't get suppressed
-        pp.quoted_string
-        | (sql_single_line_comment | sql_multi_line_comment).suppress()
-    )
-    return comment_remover.transform_string(textosql)
     
 def limpiarDuplicados(listaTablas):
     return list(set(listaTablas))
@@ -24,7 +14,7 @@ def buscaroperacion_select(codigo_plsql, operacion):
     #patron = r'\b(SELECT|UPDATE)\b.*?\bFROM\b\s+(\w+)(?=[^;]*;)' 
     #patron = r'\b(SELECT|UPDATE)\b\s+([\w.*]+)\s+FROM\s+(\w+)(?=[^;]*;)'
     
-    codigo = limpiar_comentarios(codigo_plsql)
+    #codigo = limpiar_comentarios(codigo_plsql)
     #patron = rf'\b{operacion}\b[^;]*?\bFROM\b\s+([^\s;]+)' 
     #patron = r'\bSELECT\b[^;]*?\bFROM\b\s+([^\s;]+)' 
     patron = r'\bSELECT\b(?!.*\))(.*?)(?<=\bFROM\b\s+)([^\s;,()]+)'
@@ -122,10 +112,11 @@ def encontrarOperacionesUnicas(codigo): #aun no se usa
     operaciones["INSERT"] = limpiarDuplicados(buscaroperacion_insert(codigo))
     operaciones["DELETE"] = limpiarDuplicados(buscaroperacion_delete(codigo))
     operaciones["UPDATE"] = limpiarDuplicados(buscaroperacion_update(codigo))
+
    
 def encontrarOperaciones(codigo, operacion): 
     sentencia = hm_operaciones.copy()
-    sentencia["SELECT"] = buscaroperacion_select(codigo,'SELECT')
+    sentencia["SELECT"] = buscarOperaciones.buscaroperacion_select(codigo)
     sentencia["INSERT"] = buscaroperacion_insert(codigo)
     sentencia["DELETE"] = buscaroperacion_delete(codigo)
     sentencia["UPDATE"] = buscaroperacion_update(codigo)   
