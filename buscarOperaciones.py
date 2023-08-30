@@ -1,5 +1,5 @@
 import re
-import extractTableNames 
+import lib_extractTableNames
 
 def buscaroperacion(codigo_plsql):
     buscaroperacion_select(codigo_plsql)
@@ -18,5 +18,5 @@ def buscaroperacion_select(codigo_plsql):
 
 
 def identificarTablas(sentencia):
-    return [elemento.split()[0] for elemento in extractTableNames.extract_tables(sentencia)]
+    return [elemento.split()[0] for elemento in lib_extractTableNames.extract_tables(sentencia)]
 
