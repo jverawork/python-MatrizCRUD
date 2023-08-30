@@ -5,21 +5,8 @@ from tip_estructuras import hm_operaciones, hm_procesos, hm_paquete
 def limpiarDuplicados(listaTablas):
     return list(set(listaTablas))
     
-def buscaroperacion_select(codigo_plsql, operacion):         
-    #patron = r'\b(?:SELECT|UPDATE)\b(?:\s|\n)+.*?\bFROM\b(?:\s|\n)+(\w+)\b'
-    #patron = r'\b(?:SELECT|UPDATE)\b.*?\bFROM\b(?:\s|[\w.\n])*?(\w+)\b'
-    #patron = r'\b(?:SELECT|UPDATE)\b[^;]*?\bFROM\b\s+([^\s;]+)'
-    #patron = r'\b(SELECT|UPDATE)\b[^;]*?\bFROM\b\s+([^\s;]+)' 
-    #patron = r'\b(SELECT|UPDATE)\b.*?\bFROM\b\s+(\w+)(?=\s*;)' -not
-    #patron = r'\b(SELECT|UPDATE)\b.*?\bFROM\b\s+(\w+)(?=[^;]*;)' 
-    #patron = r'\b(SELECT|UPDATE)\b\s+([\w.*]+)\s+FROM\s+(\w+)(?=[^;]*;)'
-    
-    #codigo = limpiar_comentarios(codigo_plsql)
-    #patron = rf'\b{operacion}\b[^;]*?\bFROM\b\s+([^\s;]+)' 
-    #patron = r'\bSELECT\b[^;]*?\bFROM\b\s+([^\s;]+)' 
-    patron = r'\bSELECT\b(?!.*\))(.*?)(?<=\bFROM\b\s+)([^\s;,()]+)'
-    sentencias = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)      
-    return sentencias
+def buscaroperacion_select(codigo):         
+    return buscarOperaciones.buscartablas_select(codigo)   
 
 def buscaroperacion_delete(codigo):           
     patron = r'\bDELETE\b[^;]*?\bFROM\b\s+([^\s;]+)' 
@@ -116,7 +103,7 @@ def encontrarOperacionesUnicas(codigo): #aun no se usa
    
 def encontrarOperaciones(codigo, operacion): 
     sentencia = hm_operaciones.copy()
-    sentencia["SELECT"] = buscarOperaciones.buscaroperacion_select(codigo)
+    sentencia["SELECT"] = buscaroperacion_insert(codigo)
     sentencia["INSERT"] = buscaroperacion_insert(codigo)
     sentencia["DELETE"] = buscaroperacion_delete(codigo)
     sentencia["UPDATE"] = buscaroperacion_update(codigo)   
