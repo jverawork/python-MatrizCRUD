@@ -100,3 +100,87 @@
             AND D.DP_ESTADODETCATALOGO = K_VALDA
             AND D.DP_TIPVALDETCATALOGO = K_VALDV;
         EXCEPTION
+  K_LIMITEBULKCOLLECT CONSTANT PLS_INTEGER:= 3000;
+    K_ENTER                CONSTANT VARCHAR2 (50) := CHR (13) || CHR (10);
+    
+   
+    PROCEDURE CRE_CONSULTACATALOGO_P (
+        AI_CODCATALOGO             IN  PQ_OWNER.CRE_CATALOGOPQ_TBL.CP_CODCATALOGO%TYPE,        
+        AI_CODDETCATALOGO         IN  PQ_OWNER.CRE_DETCATALOGOPQ_TBL.DP_CODDETCATALOGO%TYPE, 
+        AO_VALNUMDETCATALOGO    IN OUT PQ_OWNER.CRE_DETCATALOGOPQ_TBL.DP_VALNUMDETCATALOGO%TYPE, 
+        AO_VALCARDETCATALOGO    IN OUT PQ_OWNER.CRE_DETCATALOGOPQ_TBL.DP_VALCARDETCATALOGO%TYPE, 
+        AO_VALFECDETCATALOGO    IN OUT PQ_OWNER.CRE_DETCATALOGOPQ_TBL.DP_VALFECDETCATALOGO%TYPE, 
+        AO_ERROR                  IN OUT VARCHAR2,
+        AO_MENSAJEERROR            IN OUT VARCHAR2)
+    IS
+    BEGIN
+
+        SYS.DBMS_APPLICATION_INFO.SET_MODULE (
+        MODULE_NAME   => 'cre_consultacatalogo_p',
+        ACTION_NAME   => 'Obtiene datos parametrizados que se usan en el proceso');
+
+       <<BUSCACATALOGO>>
+        BEGIN
+            SELECT D.DP_VALNUMDETCATALOGO, D.DP_VALCARDETCATALOGO, D.DP_VALFECDETCATALOGO
+            INTO AO_VALNUMDETCATALOGO, AO_VALCARDETCATALOGO, AO_VALFECDETCATALOGO
+            FROM PQ_OWNER.CRE_CATALOGOPQ_TBL AS C
+            INNER JOIN PQ_OWNER.CRE_DETCATALOGOPQ_TBL2 D
+            ON (C.CP_ID_CATALOGO = D.CP_ID_CATALOGO)
+            WHERE     
+            C.CP_CODCATALOGO = AI_CODCATALOGO
+
+            AND D.DP_TIPVALDETCATALOGO = K_VALDV;
+        EXCEPTION
+
+           SELECT PL.RUCEMP,
+                   D.FECININOV,
+                   D.ESTNOVDET
+              FROM KSEMPTNOVHISLABDET , KSRECTPLADET , KSRECTPLANILLAS 
+             WHERE     D.RUCEMP = P.RUCEMP
+                   AND D.CODSUC = P.CODSUC
+                   AND P.TIPPER = AI_TIPPER
+                   AND D.FECININOV BETWEEN R_REGPER.FECINIPER
+                                       AND R_REGPER.FECFINPER
+                   AND D.ESTNOVDET = '1'
+                   AND EXISTS
+                          (SELECT A.RUCEMP, A.CODSUC
+                             FROM KSPCOTSUCURSALES ,
+                                  KSPCOTEMPLEADORES ,
+                                  KSPCOTEMPTIP AS C
+                            WHERE     A.CODESTEMP NOT IN
+                                         ('INA', 'INC', 'PLI')
+                                  AND A.RUCEMP = B.RUCEMP
+                                  AND C.CODSEC NOT IN ('V', 'S'));
+                                  
+        <<BUSCACATALOGO>>
+        UPDATE PEPITO
+        SET A = BACKU;
+        
+        DELETE FROM JUAITO;
+        
+		  SELECT A FROM B;
+        BEGIN
+            FOR N IN ( SELECT D.DP_VALNUMDETCATALOGO, D.DP_VALCARDETCATALOGO, D.DP_VALFECDETCATALOGO
+            INTO AO_VALNUMDETCATALOGO, AO_VALCARDETCATALOGO, AO_VALFECDETCATALOGO
+            FROM PQ_OWNER.CRE_CATALOGOPQ_TBL AS C
+            INNER JOIN PQ_OWNER.CRE_DETCATALOGOPQ_TBL D
+            ON (C.CP_ID_CATALOGO = D.CP_ID_CATALOGO)
+            WHERE     
+            C.CP_CODCATALOGO = AI_CODCATALOGO
+            AND D.DP_CODDETCATALOGO = AI_CODDETCATALOGO ) LOOP
+				
+SELECT A, (SELECT B FROM Y WHERE A=B) FROM D WHERE D= A;
+
+SELECT      PL.ESTTIPPLA, PL.PAGBANCEN, CAMPO2, CAMPO3, CAMPO4
+FROM TABLA1, TABLA2, TABLA3, KSEMPTNOVHISLABDET , KSRECTPLADET , KSRECTPLANILLAS 
+WHERE     D.RUCEMP = P.RUCEMP
+                   AND D.CODSUC = P.CODSUC
+AND EXISTS
+                          (SELECT A.RUCEMP, A.CODSUC
+                             FROM KSPCOTSUCURSALES ,
+                                  KSPCOTEMPLEADORES ,
+                                  KSPCOTEMPTIP AS C
+                            WHERE     A.CODESTEMP NOT IN
+                                         ('INA', 'INC', 'PLI')
+                                  AND A.RUCEMP = B.RUCEMP
+                                  AND C.CODSEC NOT IN ('V', 'S'));        
