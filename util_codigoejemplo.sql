@@ -1,7 +1,35 @@
+  create or replace PACKAGE AUDIMED_OWNER.SAL_REPLICAAUDIMED_K IS
+   --<b>Version:</b> 1.0.0
+   --<br><b>Descripcion:</b>  Replica la informacion de tramites, expedientes, servicios y trazabilidad de auditorias medicas.
+   --<br><b>Autor:</b>  Manuel Vera <br>
+   --<br><b>Fecha:</b> 21/07/2023
+   --<br><b>Historial de Cambios</b>
+   --<hr>
+   --Fecha          Autor            Version      Descripcion
+   --<hr>
+   --21/07/2023     Manuel Vera      1.0.0          Creacion.
+PROCEDURE sal_replicaaudimed_orq_p;
+PROCEDURE sal_replicaaudimed_p(
+ ao_mensajesalida OUT VARCHAR2,
+ ao_registros OUT NUMBER
+   INSERT INTO aud_visor_log_usuarios_t@dbk_audimed_dbreplica (id_log_usuario, accion,resultado,detalle,usu_creacion,fec_creacion,ip_equipo,tabla)
+   VALUES(AUD_VISOR_LOG_USUARIOS_S.nextval@dbk_audimed_dbreplica, 'REPLICA', 'exito', 'INICIO DEL PROCESO', 'system', SYSDATE, l_ip,null );
+
+   /*
+    TRAMITES
+   */
+   INSERT INTO AUD_TRAMITES_T@dbk_audimed_dbreplica /*+ append */
+                                     nologging (id_tramite,
+
   K_LIMITEBULKCOLLECT CONSTANT PLS_INTEGER:= 3000;
     K_ENTER                CONSTANT VARCHAR2 (50) := CHR (13) || CHR (10);
     
-   
+      cod_coordinacion) 
+      SELECT /*+ parallel(b,9) */
+            t.id_tramite,
+    codi_tramite,
+    coordinacion_provincial,--variable
+    val_solicitado, 
     PROCEDURE CRE_CONSULTACATALOGO_P (
         AI_CODCATALOGO             IN  PQ_OWNER.CRE_CATALOGOPQ_TBL.CP_CODCATALOGO%TYPE,        
         AI_CODDETCATALOGO         IN  PQ_OWNER.CRE_DETCATALOGOPQ_TBL.DP_CODDETCATALOGO%TYPE, 
@@ -15,8 +43,8 @@
 
         SYS.DBMS_APPLICATION_INFO.SET_MODULE (
         MODULE_NAME   => 'cre_consultacatalogo_p',
-        ACTION_NAME   => 'Obtiene datos parametrizados que se usan en el proceso');
-
+        ACTION_NAME   => 'Obtiene datos parametrizados que se usan en el proceso');--eemplo
+--eemplo
        <<BUSCACATALOGO>>
         BEGIN
             SELECT D.DP_VALNUMDETCATALOGO, D.DP_VALCARDETCATALOGO, D.DP_VALFECDETCATALOGO

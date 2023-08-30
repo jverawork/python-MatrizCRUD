@@ -7,16 +7,19 @@
 #import sistem
 
 #import manejoExcel  
-#import analizarCodigo
-#import manejoArchivos
+import analizarCodigo
+import manejoArchivos
 #from estructuras import hm_operaciones, hm_procesos, hm_paquete
+
+import afinarCodigo
 
 archivoSQL   = 'util_fuentesSQL.pkb'
 archivoExcel = "util_matrizCRUD.xlsx"
 
 def main():     
-    global hm_paquete    
-    codigo_plsql = analizarCodigo.limpiar_comentarios(manejoArchivos.abrir_archivo(archivoSQL))
+    global hm_paquete
+    codigo_plsql = manejoArchivos.abrir_archivo(archivoSQL)
+    codigo_plsql = afinarCodigo.limpiar_comentarios(codigo_plsql)
     codigo_plsql = analizarCodigo.segmentarCodigo(codigo_plsql) #codigo remanente
     
     analizarCodigo.analizarOperacionesEnProcesos()

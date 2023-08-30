@@ -1,3 +1,6 @@
+GRUPO DE NO CAPTURA 
+(?:
+
 PALABRA ANTES DE COMA
 (?:(?:\s*(\w+))(?:\s*,\s*))
 
@@ -15,6 +18,9 @@ ENCUENTRA LAS SENTENCIAS SELECT ***FROM EN LA CADENA
 
 recupera toda la sentencia select
 ((?:SELECT)(?:.|\s)+?(?:FROM|JOIN)(?:.|\s)+?(?:(?=;)|(?=(?:\s*\)\s*LOOP\s+))))
+
+ENCUENTRA LOS COMENTARIOS
+\/\*[^*]*\*+(?:[^*\/][^*]*\*+)*\/
 
 (?:.|\s)+?
 
