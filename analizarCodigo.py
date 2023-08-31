@@ -9,48 +9,16 @@ def buscaroperacion_select(codigo):
     return buscarOperaciones.buscartablas_select(codigo)   
 
 def buscaroperacion_delete(codigo):           
-    patron = r'\bDELETE\b[^;]*?\bFROM\b\s+([^\s;]+)' 
-    sentencias1 = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)    
-    patron = r'\bDELETE\b\s+((?!FROM\b)[^\s;]+)'
-    sentencias2 = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)    
-    return sentencias1+sentencias2
+    return buscarOperaciones.buscartablas_delete(codigo)
     
 def buscaroperacion_insert(codigo):           
-    patron = r'\bINSERT\b[^;]*?\bINTO\b\s+([^\s;]+)' 
-    sentencias = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)        
-    return sentencias
+    return buscarOperaciones.buscartablas_insert(codigo)
         
 def buscaroperacion_update(codigo):          
-    patron = r'\bUPDATE\b\s+([^\s;]+)'
-    sentencias = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)        
-    return sentencias
+    return buscarOperaciones.buscartablas_update(codigo)
 
 def buscaroperacion_merge(codigo):          
-    patron = r'\bMERGE\b[^;]*?\bINTO\b\s+([^\s;]+)' 
-    sentencias = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)        
-    return sentencias
-
-def get_operations(tablas):
-    operations = {table: [] for table in tablas}
-    for match in operaciones["SELECT"]:
-        if match in operations:
-            operations[match].append("SELECT")    
-    for match in operaciones["UPDATE"]:
-        if match in operations:
-            operations[match].append("UPDATE")
-
-    for match in operaciones["INSERT"]:
-        if match in operations:
-            operations[match].append("INSERT")
-
-    for match in operaciones["DELETE"]:
-        if match in operations:
-            operations[match].append("DELETE")
-
-    for match in operaciones["MERGE"]:
-        if match in operations:
-            operations[match].append("MERGE")
-    return operations
+    return buscarOperaciones.buscartablas_merge(codigo)
 
 
 
@@ -103,7 +71,7 @@ def encontrarOperacionesUnicas(codigo): #aun no se usa
    
 def encontrarOperaciones(codigo, operacion): 
     sentencia = hm_operaciones.copy()
-    sentencia["SELECT"] = buscaroperacion_insert(codigo)
+    sentencia["SELECT"] = buscaroperacion_select(codigo)
     sentencia["INSERT"] = buscaroperacion_insert(codigo)
     sentencia["DELETE"] = buscaroperacion_delete(codigo)
     sentencia["UPDATE"] = buscaroperacion_update(codigo)   
@@ -116,10 +84,36 @@ def analizarOperacionesEnProcesos():
     for i in range(len(hm_paquete["LISTA_PROCESOS"])):
         operacion = hm_paquete["LISTA_PROCESOS"][i]
         operacion = encontrarOperaciones(operacion["CODIGO"],operacion) 
+        operacion["PARAMETROS"] = buscarParametros(operacion["CODIGO"])
+        operacion["VARIABLES"] = buscarVariables(operacion["CODIGO"])
         hm_paquete["LISTA_PROCESOS"][i] = operacion
-        if operacion["NOMBRE_PROCESO"]=="CRE_CONSULTACATALOGO_P":
-            print(operacion["OPERACIONES"])
-            return
+        #if operacion["NOMBRE_PROCESO"]=="CRE_EXCLUSIONESDEB_P":
+        #    print(operacion["NOMBRE_PROCESO"])
+        #    print(operacion["OPERACIONES"])
+        #    print(operacion["PARAMETROS"])
+        #    print(operacion["VARIABLES"])
         #print(f"---{hm_paquete['LISTA_PROCESOS'][i]['NOMBRE_PROCESO']}---")
         #print(f"{hm_paquete['LISTA_PROCESOS'][i]['OPERACIONES']}")
  
+def buscarParametros(codigo):
+    tipProceso = ["PROCEDURE", "FUNCTION"]
+    for proceso in tipProceso:
+        if proceso in codigo:    
+            patron = r'{}\s+\w+([^)]+)'.format(re.escape(proceso))
+            definiciones = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)    
+
+            patron = r'(\w+\.?\w+\.?\w+)(?=%TYPE,)'
+            parametros = re.findall(patron, definiciones[0], re.IGNORECASE | re.DOTALL)    
+            return list(set(parametros))    
+
+def buscarVariables(codigo):
+    tipProceso = ["PROCEDURE", "FUNCTION"]
+    for proceso in tipProceso:
+        if proceso in codigo:
+            patron = r'{}\s+\w+([^)]+)'.format(re.escape(proceso))
+            definiciones = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)    
+            codigo.replace(definiciones[0],"")
+    
+    patron = r'(\w+\.\w+\.?\w+)(?=(?:%ROWTYPE;|%TYPE;))'
+    variables = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)    
+    return list(set(variables))

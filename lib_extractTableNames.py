@@ -37,10 +37,10 @@ def extract_table_identifiers(token_stream):
     for item in token_stream:
         if isinstance(item, IdentifierList):
             for identifier in item.get_identifiers():
-                value = identifier.value.replace('"', '').lower()                
+                value = identifier.value.replace('"', '')#.lower()                
                 yield value
         elif isinstance(item, Identifier):
-            value = item.value.replace('"', '').lower()
+            value = item.value.replace('"', '')#.lower()
             yield value
 
 

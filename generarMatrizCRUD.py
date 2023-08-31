@@ -9,7 +9,7 @@
 #import manejoExcel  
 import analizarCodigo
 import manejoArchivos
-#from estructuras import hm_operaciones, hm_procesos, hm_paquete
+from tip_estructuras import hm_operaciones, hm_procesos, hm_paquete
 
 import afinarCodigo
 
@@ -18,17 +18,18 @@ archivoExcel = "util_matrizCRUD.xlsx"
 
 def main():     
     global hm_paquete
-    codigo_plsql = manejoArchivos.abrir_archivo(archivoSQL)
-    codigo_plsql = afinarCodigo.limpiar_comentarios(codigo_plsql)
-    codigo_plsql = analizarCodigo.segmentarCodigo(codigo_plsql) #codigo remanente
+    codplsql = manejoArchivos.abrir_archivo(archivoSQL)
+    codplsql = afinarCodigo.limpiar_comentarios(codplsql)
+    codplsql_remanente = analizarCodigo.segmentarCodigo(codplsql.upper())
     
     analizarCodigo.analizarOperacionesEnProcesos()
 
-    #hm_paquete["NOMBRE_PAQUETE"]= analizarCodigo.obtenerNombrePaquete(codigo_plsql)[1] 
-    #hm_paquete["TIPO"]= "PACKAGE BODY" 
-    #hm_paquete["CODIGO"]= codigo_plsql    
-    #analizarCodigo.encontrarOperaciones(codigo_plsql, hm_paquete)    
-    
+    hm_paquete["NOMBRE_PAQUETE"] = analizarCodigo.obtenerNombrePaquete(codplsql_remanente)[1] 
+    hm_paquete["TIPO"]= "PACKAGE BODY" 
+    hm_paquete["CODIGO"]= codplsql_remanente    
+    analizarCodigo.encontrarOperaciones(codplsql_remanente, hm_paquete)    
+
+    hm_paquete["VARIABLES"]  = analizarCodigo.buscarVariables(codplsql_remanente)    
     #manejoExcel.armarExcel(hm_paquete, archivoExcel)
     
     
