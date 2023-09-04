@@ -6,7 +6,7 @@
  #pip install os
 #import sistem
 
-#import manejoExcel  
+import gestionarExcel  
 import analizarCodigo
 import manejoArchivos
 from tip_estructuras import hm_operaciones, hm_procesos, hm_paquete
@@ -14,7 +14,7 @@ from tip_estructuras import hm_operaciones, hm_procesos, hm_paquete
 import afinarCodigo
 
 archivoSQL   = 'util_fuentesSQL.pkb'
-archivoExcel = "util_matrizCRUD.xlsx"
+archivoExcel = "util_matrizCRUD2.xlsx"
 
 def main():     
     global hm_paquete
@@ -30,9 +30,24 @@ def main():
     analizarCodigo.encontrarOperaciones(codplsql_remanente, hm_paquete)    
 
     hm_paquete["VARIABLES"]  = analizarCodigo.buscarVariables(codplsql_remanente)    
-    #manejoExcel.armarExcel(hm_paquete, archivoExcel)
+    #prepararDatos()
+    gestionarExcel.armarExcel(hm_paquete, archivoExcel,"Body")
     
+def prepararDatos():
+    max_longitudProcesos = 0
+    for proceso in hm_paquete["LISTA_PROCESOS"]:
+        longitud_actual = len(proceso ["VARIABLES"])
+        if longitud_actual > max_longitudProcesos:
+            max_longitudProcesos = longitud_actual
     
+    max_length = max(len(hm_paquete["VARIABLES"]),len(hm_paquete["PARAMETROS"]))
+    hm_paquete["VARIABLES"]  += [None] * (max_length - len(hm_paquete["VARIABLES"]))
+    #hm_paquete["PARAMETROS"] += [None] * (max_length - len(hm_paquete["PARAMETROS"]))
+
+    for proceso in hm_paquete["LISTA_PROCESOS"]:  
+        proceso["VARIABLES"]  += [None] * (max_length - len(proceso["VARIABLES"]))
+        proceso["PARAMETROS"] += [None] * (max_length - len(proceso["PARAMETROS"]))
+
 if __name__ == "__main__":
     main()
     #sistem.abrirExcel(archivoExcel)

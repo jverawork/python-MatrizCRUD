@@ -15,7 +15,8 @@ def buscartablas_select(codigo_plsql):
     for sentencia in sentencias:
         tablas = tablas + identificarTablas(sentencia)
     
-    return list(set(tablas))
+    #return list(set(tablas))#retorna unico elemento
+    return tablas
 
 def buscartablas_delete(codigo):           
     patron = r'\bDELETE\b[^;]*?\bFROM\b\s+([^\s;]+)' 

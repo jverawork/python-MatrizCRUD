@@ -104,7 +104,8 @@ def buscarParametros(codigo):
 
             patron = r'(\w+\.?\w+\.?\w+)(?=%TYPE,)'
             parametros = re.findall(patron, definiciones[0], re.IGNORECASE | re.DOTALL)    
-            return list(set(parametros))    
+            #return list(set(parametros))    
+            return parametros
 
 def buscarVariables(codigo):
     tipProceso = ["PROCEDURE", "FUNCTION"]
@@ -116,4 +117,5 @@ def buscarVariables(codigo):
     
     patron = r'(\w+\.\w+\.?\w+)(?=(?:%ROWTYPE;|%TYPE;))'
     variables = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)    
-    return list(set(variables))
+    #return list(set(variables))
+    return variables
