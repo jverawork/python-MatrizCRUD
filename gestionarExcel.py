@@ -1,7 +1,10 @@
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Border, Side, Font
 from openpyxl.worksheet.table import Table
+from collections import Counter
 import re
+
+import util_log
 
 #import conexion
 camposPaqueteAImprimir = ["TIPO", "NOMBRE_PAQUETE", "VARIABLES"]
@@ -12,8 +15,17 @@ tablaDatos = "Tabla1"
 
 def formatearCelda(celda):
     celda.font = Font(size=8)
-    celda.alignment = Alignment(horizontal="center", vertical="center")
-    
+    if celda.column == 10:
+        celda.alignment = Alignment(horizontal="center", vertical="center")
+    else:
+        celda.alignment = Alignment(horizontal="left", vertical="center")
+
+def registrarNombrePaquete(hm_paquete, fila, sheet):
+    formatearCelda(sheet.cell(row=fila, column = 1, value = hm_paquete["TIPO"]))
+    esquema, _, objeto = hm_paquete["NOMBRE_PAQUETE"].partition(".")
+    formatearCelda(sheet.cell(row=fila, column = 2, value = esquema))
+    formatearCelda(sheet.cell(row=fila, column = 3, value = objeto))
+
 def armarExcel(hm_paquete,archivo, hoja):
     workbook = load_workbook(archivo)
     sheet = workbook["Body"]
@@ -31,42 +43,135 @@ def armarExcel(hm_paquete,archivo, hoja):
     ref_filafin = int(filas[1][1])
     
     sheet.delete_rows((ref_filaini + 2), ref_filafin-ref_filaini)
-    
+
     fila = ref_filaini + 1
     for oper_paquete in set(hm_paquete['VARIABLES']):
         #sheet.insert_rows(fila+1,1)
-        formatearCelda(sheet.cell(row=fila, column = 1, value = hm_paquete["TIPO"]))
-        #celda.font = Font(size=8)
-        #celda.alignment = Alignment(horizontal="center", vertical="center")
-        esquema, _, objeto = hm_paquete["NOMBRE_PAQUETE"].partition(".")
-        formatearCelda(sheet.cell(row=fila, column = 2, value = esquema))
-        formatearCelda(sheet.cell(row=fila, column = 3, value = objeto))
+        registrarNombrePaquete(hm_paquete, fila, sheet)
         esquema, _, objeto = oper_paquete.partition(".")
         formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))
         formatearCelda(sheet.cell(row=fila, column = 7, value = objeto))
         formatearCelda(sheet.cell(row=fila, column = 9, value = "VARIABLES"))
         formatearCelda(sheet.cell(row=fila, column = 10, value = hm_paquete['VARIABLES'].count(oper_paquete)))      
+        sheet.row_dimensions[fila].height = 1125/100
         fila += 1    
+
+    for i in range(len(hm_paquete['LISTA_PROCESOS'])):
+        operacion = hm_paquete['LISTA_PROCESOS'][i]
+        registrarNombrePaquete(hm_paquete, fila, sheet)
+        formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
+        formatearCelda(sheet.cell(row=fila, column=5, value=operacion["NOMBRE_PROCESO"]))
+        
+        #listaUnicos = set(['.'.join(cadena.split('.')[:-1]) for cadena in operacion['PARAMETROS']])
+        listaUnicos = [cadena if '.' not in cadena else '.'.join(cadena.split('.')[:2]) for cadena in operacion['PARAMETROS']]
+        for oper_proceso in set(listaUnicos):
+            registrarNombrePaquete(hm_paquete, fila, sheet)
+            formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
+            formatearCelda(sheet.cell(row=fila, column=5, value=operacion["NOMBRE_PROCESO"]))
+            try:
+                esquema = oper_proceso.split(".")[0]
+                objeto = oper_proceso.split(".")[1]
+            except Exception as e:
+                print("--------------Error------------")
+                print(operacion['PARAMETROS'])
+                print(listaUnicos)
+                print(oper_proceso)
+            formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))
+            formatearCelda(sheet.cell(row=fila, column = 7, value = objeto))            
+            formatearCelda(sheet.cell(row=fila, column = 9, value = "PARAMETROS"))
+            contador = sum(1 for elemento in listaUnicos if elemento.startswith(esquema+"."+objeto))          
+            formatearCelda(sheet.cell(row=fila, column = 10, value = contador))      
+            sheet.row_dimensions[fila].height = 1125/100
+            fila += 1   
+
+        listaVariables = [[sublista[0].split('.')[0], sublista[1]] for sublista in operacion['VARIABLES-DBLINK']]
+        util_log.log(operacion["NOMBRE_PROCESO"], 3, None, None, listaVariables, "gestionarExcel.armarExcel VARIABLES-DBLINK")
+        coleccionVariables = Counter(tuple(elemento) for elemento in listaVariables)
+
+        for (objeto, dblink), repeticiones in coleccionVariables.items():
+                registrarNombrePaquete(hm_paquete, fila, sheet)
+                formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
+                formatearCelda(sheet.cell(row=fila, column=5, value=operacion["NOMBRE_PROCESO"]))
+                formatearCelda(sheet.cell(row=fila, column = 6, value = "'@"+dblink))
+                formatearCelda(sheet.cell(row=fila, column = 7, value = objeto))            
+                formatearCelda(sheet.cell(row=fila, column = 9, value = "VARIABLES-DBLINK"))
+                formatearCelda(sheet.cell(row=fila, column = 10, value = repeticiones))      
+                sheet.row_dimensions[fila].height = 1125/100
+                fila += 1  
+
+        listaVariables = [cadena if '.' not in cadena else '.'.join(cadena.split('.')[:2]) for cadena in operacion['VARIABLES']]        
+        util_log.log(operacion["NOMBRE_PROCESO"], 4, None, None, listaVariables, "gestionarExcel.armarExcel")          
+        for oper_proceso in set(listaVariables):
+            registrarNombrePaquete(hm_paquete, fila, sheet)
+            formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
+            formatearCelda(sheet.cell(row=fila, column=5, value=operacion["NOMBRE_PROCESO"]))
+            
+            try:
+                esquema = oper_proceso.split(".")[0]
+                objeto = oper_proceso.split(".")[1]
+            except Exception as e:
+                util_log.logError(operacion["NOMBRE_PROCESO"], None, None, listaVariables, "gestionarExcel.armarExcel for oper_proceso", e)
+            formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))
+            formatearCelda(sheet.cell(row=fila, column = 7, value = objeto))            
+            formatearCelda(sheet.cell(row=fila, column = 9, value = "VARIABLES"))
+            contador = sum(1 for elemento in listaVariables if elemento.startswith(esquema+"."+objeto))
+            formatearCelda(sheet.cell(row=fila, column = 10, value = contador))      
+            sheet.row_dimensions[fila].height = 1125/100
+            fila += 1              
+        
+        for sentencia, tablas in operacion["OPERACIONES"].items():        
+            for tabla in set(tablas):                 
+                registrarNombrePaquete(hm_paquete, fila, sheet)
+                formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
+                formatearCelda(sheet.cell(row=fila, column=5, value=operacion["NOMBRE_PROCESO"]))
+                if '@' in tabla:
+                    objeto, _, esquema = tabla.partition("@")
+                    esquema = "'@"+esquema
+                    sentencia = sentencia + "-DBLINK"
+                else:
+                    esquema, _, objeto = tabla.partition(".")
+                procesoInterno = ""
+                if objeto != "":
+                    formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))            
+                    formatearCelda(sheet.cell(row=fila, column = 7, value = objeto)) 
+                else:
+                    procesoInterno = esquema
+                    esquema = sheet.cell(row=fila, column=2).value
+                    formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))                    
+                formatearCelda(sheet.cell(row=fila, column = 9, value = sentencia))
+                formatearCelda(sheet.cell(row=fila, column = 10, value = tablas.count(tabla))) 
+                if sentencia == "EXECUTE":
+                    esquema, _, objeto = objeto.partition(".")
+                    if esquema != "" and objeto != "":
+                        formatearCelda(sheet.cell(row=fila, column = 7, value = esquema)) 
+                        formatearCelda(sheet.cell(row=fila, column = 8, value = objeto))  
+                    else:
+                        formatearCelda(sheet.cell(row=fila, column = 8, value = procesoInterno))              
+                sheet.row_dimensions[fila].height = 1125/100
+                fila += 1
+
+        listaVariables = [[sublista[0].split('.')[0], sublista[1]] for sublista in operacion['NEXTVAL']]
+        util_log.log(operacion["NOMBRE_PROCESO"], 3, None, None, listaVariables, "gestionarExcel.armarExcel NEXTVAL")
+        coleccionVariables = Counter(tuple(elemento) for elemento in listaVariables)
+
+        for (objeto, dblink), repeticiones in coleccionVariables.items():
+                registrarNombrePaquete(hm_paquete, fila, sheet)
+                formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
+                formatearCelda(sheet.cell(row=fila, column=5, value=operacion["NOMBRE_PROCESO"]))
+                formatearCelda(sheet.cell(row=fila, column = 6, value = "'@"+dblink))
+                formatearCelda(sheet.cell(row=fila, column = 7, value = objeto))            
+                formatearCelda(sheet.cell(row=fila, column = 9, value = "VARIABLES-DBLINK"))
+                formatearCelda(sheet.cell(row=fila, column = 10, value = repeticiones))      
+                sheet.row_dimensions[fila].height = 1125/100
+                fila += 1  
     #sheet.delete_rows((ref_filaini + 1), 1)
     table.ref = f"{ref_columnaini}{ref_filaini}:{ref_columnafin}{fila-1}"
-    print(set(hm_paquete['VARIABLES']))
+    table.auto_filter = None
+    #print(set(hm_paquete['VARIABLES']))
 
     workbook.save(archivo)
     workbook.close()
 
-   #sfor i in range(len(hm_paquete['LISTA_PROCESOS'])):
-    #    operacion = hm_paquete['LISTA_PROCESOS'][i]
-    #    #print(operacion["NOMBRE_PROCESO"])
-    #    #print(operacion["OPERACIONES"])
-    #    for sentencia, tablas in operacion["OPERACIONES"].items():        
-    #        for tabla in tablas: 
-    #            sheet.insert_rows(row_num, amount=1)
-    #            sheet.cell(row=row_num, column=1, value=hm_paquete["NOMBRE_PAQUETE"])
-    #            sheet.cell(row=row_num, column=2, value=operacion["NOMBRE_PROCESO"])
-    #            sheet.cell(row=row_num, column=3, value=operacion["TIPO"])
-    #            sheet.cell(row=row_num, column=4, value=tabla)        
-    #            sheet.cell(row=row_num, column=5, value=sentencia)
-    #            row_num += 1
 #
     #for sentencia, tablas in hm_paquete["OPERACIONES"].items():        
     #    for tabla in tablas: 

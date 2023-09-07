@@ -24,7 +24,7 @@ def extract_from_part(parsed):
             if is_subselect(item):
                 for x in extract_from_part(item):
                     yield x
-            elif item.ttype is Keyword and item.value.upper() in ['ORDER', 'GROUP', 'BY', 'HAVING', 'GROUP BY']:
+            elif item.ttype is Keyword and item.value.upper() in ['ORDER BY', 'GROUP', 'BY', 'HAVING', 'GROUP BY', 'UNION ALL']:
                 from_seen = False
                 StopIteration
             else:
@@ -37,12 +37,14 @@ def extract_table_identifiers(token_stream):
     for item in token_stream:
         if isinstance(item, IdentifierList):
             for identifier in item.get_identifiers():
-                value = identifier.value.replace('"', '')#.lower()                
+                value = identifier.value.replace('"', '')#.lower()                                
                 yield value
+                
         elif isinstance(item, Identifier):
-            value = item.value.replace('"', '')#.lower()
+            value = item.value.replace('"', '')#.lower()           
+            #print(value)
             yield value
-
+        
 
 def extract_tables(sql):
     # let's handle multiple statements in one sql string
@@ -52,4 +54,5 @@ def extract_tables(sql):
         if statement.get_type() != 'UNKNOWN':
             stream = extract_from_part(statement)
             extracted_tables.append(set(list(extract_table_identifiers(stream))))
+            
     return list(itertools.chain(*extracted_tables))
