@@ -15,6 +15,7 @@ def buscartablas_select(codigo_plsql):
     
     tablas = []
     for sentencia in sentencias:
+        #print(sentencia)
         tablas = tablas + identificarTablas(sentencia)
     
     #return list(set(tablas))#retorna unico elemento

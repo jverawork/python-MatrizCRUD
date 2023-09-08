@@ -32,6 +32,7 @@ def armarExcel(hm_paquete,archivo, hoja):
     row_num = 2
     
     table = sheet.tables[tablaDatos]
+    table.auto_filter = None
 
     patron = r"([A-Z]+)(\d+)"
     referencia = table.ref
@@ -119,11 +120,15 @@ def armarExcel(hm_paquete,archivo, hoja):
             sheet.row_dimensions[fila].height = 1125/100
             fila += 1              
         
-        for sentencia, tablas in operacion["OPERACIONES"].items():        
-            for tabla in set(tablas):                 
+        for sentenciaori, tablas in operacion["OPERACIONES"].items():        
+            for tablaori in set(tablas):                 
+                sentencia = sentenciaori
+                tabla = tablaori
                 registrarNombrePaquete(hm_paquete, fila, sheet)
                 formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
                 formatearCelda(sheet.cell(row=fila, column=5, value=operacion["NOMBRE_PROCESO"]))
+                if '.NEXTVAL' in tabla:
+                    tabla = tabla.replace('.NEXTVAL','')                
                 if '@' in tabla:
                     objeto, _, esquema = tabla.partition("@")
                     esquema = "'@"+esquema
@@ -139,7 +144,7 @@ def armarExcel(hm_paquete,archivo, hoja):
                     esquema = sheet.cell(row=fila, column=2).value
                     formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))                    
                 formatearCelda(sheet.cell(row=fila, column = 9, value = sentencia))
-                formatearCelda(sheet.cell(row=fila, column = 10, value = tablas.count(tabla))) 
+                formatearCelda(sheet.cell(row=fila, column = 10, value = tablas.count(tablaori))) 
                 if sentencia == "EXECUTE":
                     esquema, _, objeto = objeto.partition(".")
                     if esquema != "" and objeto != "":
@@ -150,24 +155,10 @@ def armarExcel(hm_paquete,archivo, hoja):
                 sheet.row_dimensions[fila].height = 1125/100
                 fila += 1
 
-        listaVariables = [[sublista[0].split('.')[0], sublista[1]] for sublista in operacion['NEXTVAL']]
-        util_log.log(operacion["NOMBRE_PROCESO"], 3, None, None, listaVariables, "gestionarExcel.armarExcel NEXTVAL")
-        coleccionVariables = Counter(tuple(elemento) for elemento in listaVariables)
-
-        for (objeto, dblink), repeticiones in coleccionVariables.items():
-                registrarNombrePaquete(hm_paquete, fila, sheet)
-                formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
-                formatearCelda(sheet.cell(row=fila, column=5, value=operacion["NOMBRE_PROCESO"]))
-                formatearCelda(sheet.cell(row=fila, column = 6, value = "'@"+dblink))
-                formatearCelda(sheet.cell(row=fila, column = 7, value = objeto))            
-                formatearCelda(sheet.cell(row=fila, column = 9, value = "VARIABLES-DBLINK"))
-                formatearCelda(sheet.cell(row=fila, column = 10, value = repeticiones))      
-                sheet.row_dimensions[fila].height = 1125/100
-                fila += 1  
     #sheet.delete_rows((ref_filaini + 1), 1)
     table.ref = f"{ref_columnaini}{ref_filaini}:{ref_columnafin}{fila-1}"
     table.auto_filter = None
-    #print(set(hm_paquete['VARIABLES']))
+    #print(table.ref)
 
     workbook.save(archivo)
     workbook.close()
