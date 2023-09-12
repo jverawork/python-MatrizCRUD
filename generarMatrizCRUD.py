@@ -18,7 +18,7 @@ archivoSQL   = 'util_fuentesSQL.pkb'
 archivoExcel = "util_matrizCRUD2.xlsx"
 
 util_log.nombre_ProcesoAuditar = "SAL_REPLICAAUDIMED_P"
-util_log.auditar =  True 
+util_log.auditar =  False 
 util_log.logNivel = 1
 util_log.logPrintCode = False
 
@@ -26,6 +26,7 @@ def main():
     global hm_paquete 
     codplsql = manejoArchivos.abrir_archivo(archivoSQL)
     codplsql = afinarCodigo.limpiar_comentarios(codplsql)
+    codplsql = afinarCodigo.sustituirArroba(codplsql)
     codplsql_remanente = analizarCodigo.segmentarCodigo(codplsql.upper())
     
     analizarCodigo.analizarOperacionesEnProcesos()

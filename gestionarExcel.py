@@ -12,6 +12,7 @@ camposProcesoAImprimir = ["TIPO", "NOMBRE_PROCESO", "VARIABLES", "PARAMETROS"]
 camposOperacionesAImprimir = ["SELECT", "INSERT", "DELETE" , "UPDATE", "MERGE"]
 
 tablaDatos = "Tabla1"
+hojaBody = "Body"
 
 def formatearCelda(celda):
     celda.font = Font(size=8)
@@ -28,14 +29,15 @@ def registrarNombrePaquete(hm_paquete, fila, sheet):
 
 def armarExcel(hm_paquete,archivo, hoja):
     workbook = load_workbook(archivo)
-    sheet = workbook["Body"]
+    sheet = workbook[hojaBody]
     row_num = 2
     
     table = sheet.tables[tablaDatos]
     table.auto_filter = None
 
-    patron = r"([A-Z]+)(\d+)"
+    patron = r"\$?([A-Z]+)\$?(\d+)"
     referencia = table.ref
+
     filas = re.findall(patron, referencia)
     
     ref_columnaini = filas[0][0]
@@ -44,6 +46,7 @@ def armarExcel(hm_paquete,archivo, hoja):
     ref_filafin = int(filas[1][1])
     
     sheet.delete_rows((ref_filaini + 2), ref_filafin-ref_filaini)
+    workbook.active
 
     fila = ref_filaini + 1
     for oper_paquete in set(hm_paquete['VARIABLES']):
@@ -156,10 +159,13 @@ def armarExcel(hm_paquete,archivo, hoja):
                 fila += 1
 
     #sheet.delete_rows((ref_filaini + 1), 1)
-    table.ref = f"{ref_columnaini}{ref_filaini}:{ref_columnafin}{fila-1}"
+    table.ref = f"${ref_columnaini}${ref_filaini}:${ref_columnafin}${fila-1}"
+    #print(table.ref)
     table.auto_filter = None
     #print(table.ref)
-
+   
+    #python_private_range = DefinedName('tablaDatos', attr_text=f'{sheet}!{cell2}', localSheetId=sheetid)
+    #workbook.defined_names.append(python_private_range)
     workbook.save(archivo)
     workbook.close()
 

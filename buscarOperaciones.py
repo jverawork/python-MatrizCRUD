@@ -7,7 +7,7 @@ def buscaroperacion(codigo_plsql):
     buscartablas_select(codigo_plsql)
 
 def identificarTablas(sentencia):
-    return [elemento.split()[0] for elemento in lib_extractTableNames.extract_tables(sentencia)]
+    return [elemento.replace("<ARROBA>", "@") for elemento in lib_extractTableNames.extract_tables(sentencia)]
 
 def buscartablas_select(codigo_plsql):    
     patron = r'((?:SELECT)(?:.|\s)+?(?:FROM|JOIN)(?:.|\s)+?(?:(?=;)|(?=(?:\s*\)\s*LOOP\s+))))'
@@ -18,7 +18,7 @@ def buscartablas_select(codigo_plsql):
         #print(sentencia)
         tablas = tablas + identificarTablas(sentencia)
     
-    #return list(set(tablas))#retorna unico elemento
+    #return list(set(tablas))#retorna unico elemento    
     return tablas
 
 def buscartablas_delete(codigo):           

@@ -13,6 +13,8 @@ def buscaroperacion_delete(codigo):
     return buscarOperaciones.buscartablas_delete(codigo)
     
 def buscaroperacion_insert(codigo):           
+    lista = buscarOperaciones.buscartablas_insert(codigo)
+    print(lista)
     return buscarOperaciones.buscartablas_insert(codigo)
         
 def buscaroperacion_update(codigo):          
