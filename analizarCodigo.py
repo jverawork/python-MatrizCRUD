@@ -13,8 +13,6 @@ def buscaroperacion_delete(codigo):
     return buscarOperaciones.buscartablas_delete(codigo)
     
 def buscaroperacion_insert(codigo):           
-    lista = buscarOperaciones.buscartablas_insert(codigo)
-    print(lista)
     return buscarOperaciones.buscartablas_insert(codigo)
         
 def buscaroperacion_update(codigo):          
@@ -56,7 +54,7 @@ def segmentarCodigo(codigo):
             operacion.update({"TIPO":"FUNCTION", "NOMBRE_PROCESO":proceso, "CODIGO": codigoInterno[0]})
             hm_paquete["LISTA_PROCESOS"].append (operacion)
         else:
-            print(f"Esta funcion tiene algun problema: {proceso}")
+            util_log.logError(proceso, None, None, procesos, "analizarCodigo.segmentarCodigo\n", e)
     procesos = re.findall(r'PROCEDURE\s+(\w+)', codigo)      
     for proceso in procesos:        
         codigoInterno = obtenerCodigoProcesos(codigo, proceso, "PROCEDURE")
@@ -66,7 +64,7 @@ def segmentarCodigo(codigo):
             operacion.update({"TIPO":"PROCEDURE", "NOMBRE_PROCESO":proceso, "CODIGO": codigoInterno[0]})
             hm_paquete["LISTA_PROCESOS"].append (operacion)
         else:
-            print(f"Este procedimiento tiene algun problema: {proceso}")
+            util_log.logError(proceso, None, None, procesos, "analizarCodigo.segmentarCodigo\n", e)
     return codigo
     
 def encontrarOperacionesUnicas(codigo): #aun no se usa
@@ -75,22 +73,24 @@ def encontrarOperacionesUnicas(codigo): #aun no se usa
     operaciones["DELETE"] = limpiarDuplicados(buscaroperacion_delete(codigo))
     operaciones["UPDATE"] = limpiarDuplicados(buscaroperacion_update(codigo))
    
-def encontrarOperaciones(codigo, proceso, listaProcesos): 
-    sentencia = hm_operaciones.copy()
-    sentencia["SELECT"] = buscaroperacion_select(codigo)
-    sentencia["INSERT"] = buscaroperacion_insert(codigo)
-    sentencia["DELETE"] = buscaroperacion_delete(codigo)
-    sentencia["UPDATE"] = buscaroperacion_update(codigo)   
-    sentencia["MERGE"]  = buscaroperacion_merge(codigo) 
-    sentencia["NEXTVAL"]  = buscaroperacion_nextval(codigo) 
+def encontrarOperaciones(codigo, procedimiento, lista_hm_procesos): 
+    operaciones = hm_operaciones.copy()
+    operaciones["SELECT"] = buscaroperacion_select(codigo)
+    operaciones["INSERT"] = buscaroperacion_insert(codigo)
+    operaciones["DELETE"] = buscaroperacion_delete(codigo)
+    operaciones["UPDATE"] = buscaroperacion_update(codigo)   
+    operaciones["MERGE"]  = buscaroperacion_merge(codigo) 
+    operaciones["NEXTVAL"]  = buscaroperacion_nextval(codigo) 
     
-    listaProcesos = [diccionario["NOMBRE_PROCESO"] for diccionario in listaProcesos if "NOMBRE_PROCESO" in diccionario]
-    listaProcesos.remove(proceso["NOMBRE_PROCESO"])
-    sentencia["EXECUTE"]  = buscaroperacion_execute(codigo, sentencia, listaProcesos) 
+    #Obtiene la lista de procesos del paquete de la lista de hm_procesos que es de tipo diccionario
+    listaProcesosDelPaquete = [diccionario["NOMBRE_PROCESO"] for diccionario in lista_hm_procesos if "NOMBRE_PROCESO" in diccionario]
+    #Remueve de la lista de procedimientos/funciones invocados el nombre del proceso analizado
+    listaProcesosDelPaquete.remove(procedimiento["NOMBRE_PROCESO"])
 
-    proceso["OPERACIONES"] = sentencia
+    operaciones["EXECUTE"]  = buscaroperacion_execute(codigo, operaciones, listaProcesosDelPaquete) 
+    procedimiento["OPERACIONES"] = operaciones
 
-    return proceso
+    return procedimiento
 
 def analizarOperacionesEnProcesos():
     global hm_paquete
@@ -101,12 +101,19 @@ def analizarOperacionesEnProcesos():
         operacion["PARAMETROS-DBLINK"] = buscarParametrosDBLink(operacion["CODIGO"], hm_paquete['LISTA_PROCESOS'][i]['NOMBRE_PROCESO'])
         operacion["VARIABLES"] = buscarVariables(operacion["CODIGO"], hm_paquete['LISTA_PROCESOS'][i]['NOMBRE_PROCESO'])
         operacion["VARIABLES-DBLINK"] = buscarVariablesDBLink(operacion["CODIGO"], hm_paquete['LISTA_PROCESOS'][i]['NOMBRE_PROCESO'])
-        hm_paquete["LISTA_PROCESOS"][i] = operacion
-        
+        hm_paquete["LISTA_PROCESOS"][i] = operacion        
         util_log.log( hm_paquete['LISTA_PROCESOS'][i]['NOMBRE_PROCESO'], 1, operacion, None, None, "analizarCodigo.analizarOperacionesEnProcesos")    
-        #print(f"---{hm_paquete['LISTA_PROCESOS'][i]['NOMBRE_PROCESO']}---")
-        #print(f"{hm_paquete['LISTA_PROCESOS'][i]['OPERACIONES']}")
- 
+
+#def analizarOperacionesEnCuerpo():
+#    global hm_paquete
+#    
+#    proceso hm_procesos
+#    proceso = encontrarOperaciones(hm_paquete["CODIGO"],proceso, hm_paquete["LISTA_PROCESOS"]) 
+#    proceso["VARIABLES"] = buscarVariables(hm_paquete["CODIGO"], hm_paquete['LISTA_PROCESOS'][i]['NOMBRE_PROCESO'])
+#    proceso["VARIABLES-DBLINK"] = buscarVariablesDBLink(proceso["CODIGO"], "Body/Spec")
+#    hm_paquete["OPERACIONES"] = proceso        
+#    util_log.log( "Body/Spec", 1, operacion, None, None, "analizarCodigo.analizarOperacionesEnCuerpo")    
+
 def buscarParametros(codigo, nombreProceso):
     tipProceso = ["PROCEDURE", "FUNCTION"]
     for proceso in tipProceso:
@@ -126,11 +133,13 @@ def buscarParametrosDBLink(codigo, nombreProceso):
             patron = r'{}\s+\w+([^)]+)'.format(re.escape(proceso))
             definiciones = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)    
 
-            patron = r'((?:\w|\.)*@(?:\w|\.)*)(?=(?:%ROWTYPE;|%TYPE;|%TYPE))'
+            #patron = r'((?:\w|\.)*@(?:\w|\.)*)(?=(?:%ROWTYPE;|%TYPE;|%TYPE))'
+            patron = r'((?:\w|\.)*<ARROBA>(?:\w|\.)*)(?=(?:%ROWTYPE;|%TYPE;|%TYPE))'
             parametros = re.findall(patron, definiciones[0], re.IGNORECASE | re.DOTALL)    
             util_log.log(nombreProceso, 4, None, codigo, parametros, "analizarCodigo.buscarParametrosDBLink")
             
-            variables = [elemento.split('@') for elemento in parametros]
+            #Svariables = [elemento.split('@') for elemento in parametros]
+            variables = [elemento.split('<ARROBA>') for elemento in parametros]
             util_log.log(nombreProceso, 4, None, codigo, variables, "analizarCodigo.buscarParametrosDBLink")             
             #return list(set(parametros))    
             return parametros
@@ -142,9 +151,7 @@ def buscarVariables(codigo, nombreProceso):
             patron = r'{}\s+\w+([^)]+)'.format(re.escape(proceso))
             definiciones = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)    
             codigo = codigo.replace(definiciones[0],"")
-            #util_log.log(nombreProceso, 2, None, codigo, None)
-            #print(nombreProceso)
-            #print(definiciones)
+            util_log.log(nombreProceso, 5, None, codigo, None, "analizarCodigo.buscarVariables\n"+codigo)
     
     patron = r'(\w+\.\w+\.?\w+)(?=(?:%ROWTYPE;|%TYPE;|%TYPE))'
     variables = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)   
@@ -161,11 +168,13 @@ def buscarVariablesDBLink(codigo, nombreProceso):
             codigo = codigo.replace(definiciones[0],"")  
 
     #Buscar variables con DBLINK - que contienen una arroba
-    patron = r'((?:\w|\.)*@(?:\w|\.)*)(?=(?:%ROWTYPE;|%TYPE;|%TYPE))'
+    #patron = r'((?:\w|\.)*@(?:\w|\.)*)(?=(?:%ROWTYPE;|%TYPE;|%TYPE))'
+    patron = r'((?:\w|\.)*\<ARROBA\>(?:\w|\.)*)(?=(?:%ROWTYPE;|%TYPE;|%TYPE))'
     variables = re.findall(patron, codigo, re.IGNORECASE | re.DOTALL)   
     util_log.log(nombreProceso, 4, None, codigo, variables, "analizarCodigo.buscarVariables")
     
-    variables = [elemento.split('@') for elemento in variables]
+    #variables = [elemento.split('@') for elemento in variables]
+    variables = [elemento.split('<ARROBA>') for elemento in variables]
     util_log.log(nombreProceso, 4, None, codigo, variables, "analizarCodigo.buscarVariables")
     return variables
 

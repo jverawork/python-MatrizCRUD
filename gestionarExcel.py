@@ -65,33 +65,31 @@ def armarExcel(hm_paquete,archivo, hoja):
         registrarNombrePaquete(hm_paquete, fila, sheet)
         formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
         formatearCelda(sheet.cell(row=fila, column=5, value=operacion["NOMBRE_PROCESO"]))
-        
+        #PARAMETROS 
         #listaUnicos = set(['.'.join(cadena.split('.')[:-1]) for cadena in operacion['PARAMETROS']])
         listaUnicos = [cadena if '.' not in cadena else '.'.join(cadena.split('.')[:2]) for cadena in operacion['PARAMETROS']]
+        esquemaPadre = ''
         for oper_proceso in set(listaUnicos):
             registrarNombrePaquete(hm_paquete, fila, sheet)
             formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
             formatearCelda(sheet.cell(row=fila, column=5, value=operacion["NOMBRE_PROCESO"]))
             try:
-                esquema = oper_proceso.split(".")[0]
+                esquemaPadre = oper_proceso.split(".")[0]
                 objeto = oper_proceso.split(".")[1]
             except Exception as e:
-                print("--------------Error------------")
-                print(operacion['PARAMETROS'])
-                print(listaUnicos)
-                print(oper_proceso)
-            formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))
+                util_log.logError(operacion["NOMBRE_PROCESO"], operacion, None, listaUnicos, "gestionarExcel.armarExcel parametros\n" + oper_proceso, e)
+            formatearCelda(sheet.cell(row=fila, column = 6, value = esquemaPadre))
             formatearCelda(sheet.cell(row=fila, column = 7, value = objeto))            
             formatearCelda(sheet.cell(row=fila, column = 9, value = "PARAMETROS"))
-            contador = sum(1 for elemento in listaUnicos if elemento.startswith(esquema+"."+objeto))          
+            contador = sum(1 for elemento in listaUnicos if elemento.startswith(esquemaPadre+"."+objeto))          
             formatearCelda(sheet.cell(row=fila, column = 10, value = contador))      
             sheet.row_dimensions[fila].height = 1125/100
             fila += 1   
-
+        #VARIABLES DBLINK
         listaVariables = [[sublista[0].split('.')[0], sublista[1]] for sublista in operacion['VARIABLES-DBLINK']]
         util_log.log(operacion["NOMBRE_PROCESO"], 3, None, None, listaVariables, "gestionarExcel.armarExcel VARIABLES-DBLINK")
         coleccionVariables = Counter(tuple(elemento) for elemento in listaVariables)
-
+        
         for (objeto, dblink), repeticiones in coleccionVariables.items():
                 registrarNombrePaquete(hm_paquete, fila, sheet)
                 formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
@@ -102,7 +100,7 @@ def armarExcel(hm_paquete,archivo, hoja):
                 formatearCelda(sheet.cell(row=fila, column = 10, value = repeticiones))      
                 sheet.row_dimensions[fila].height = 1125/100
                 fila += 1  
-
+        #VARIABLES
         listaVariables = [cadena if '.' not in cadena else '.'.join(cadena.split('.')[:2]) for cadena in operacion['VARIABLES']]        
         util_log.log(operacion["NOMBRE_PROCESO"], 4, None, None, listaVariables, "gestionarExcel.armarExcel")          
         for oper_proceso in set(listaVariables):
@@ -114,7 +112,7 @@ def armarExcel(hm_paquete,archivo, hoja):
                 esquema = oper_proceso.split(".")[0]
                 objeto = oper_proceso.split(".")[1]
             except Exception as e:
-                util_log.logError(operacion["NOMBRE_PROCESO"], None, None, listaVariables, "gestionarExcel.armarExcel for oper_proceso", e)
+                util_log.logError(operacion["NOMBRE_PROCESO"], operacion, None, listaVariables, "gestionarExcel.armarExcel\n"+oper_proceso, e)
             formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))
             formatearCelda(sheet.cell(row=fila, column = 7, value = objeto))            
             formatearCelda(sheet.cell(row=fila, column = 9, value = "VARIABLES"))
@@ -122,14 +120,16 @@ def armarExcel(hm_paquete,archivo, hoja):
             formatearCelda(sheet.cell(row=fila, column = 10, value = contador))      
             sheet.row_dimensions[fila].height = 1125/100
             fila += 1              
-        
+        #OPERACIONES INSERT SELECT DELETE EXCUTE UPDATE
         for sentenciaori, tablas in operacion["OPERACIONES"].items():        
             for tablaori in set(tablas):                 
                 sentencia = sentenciaori
                 tabla = tablaori
+                esquema, objeto = "", ""
                 registrarNombrePaquete(hm_paquete, fila, sheet)
                 formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
                 formatearCelda(sheet.cell(row=fila, column=5, value=operacion["NOMBRE_PROCESO"]))
+                noHayPunto = False
                 if '.NEXTVAL' in tabla:
                     tabla = tabla.replace('.NEXTVAL','')                
                 if '@' in tabla:
@@ -137,24 +137,26 @@ def armarExcel(hm_paquete,archivo, hoja):
                     esquema = "'@"+esquema
                     sentencia = sentencia + "-DBLINK"
                 else:
-                    esquema, _, objeto = tabla.partition(".")
-                procesoInterno = ""
-                if objeto != "":
-                    formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))            
+                    if "." in tabla:
+                        esquema, _, objeto = tabla.partition(".")
+                    else:
+                        objeto = tabla
+                        noHayPunto = True
+                #if sentencia == "SELECT":
+                    #print(tabla)
+                if sentencia != "EXECUTE":
+                    formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))
                     formatearCelda(sheet.cell(row=fila, column = 7, value = objeto)) 
                 else:
-                    procesoInterno = esquema
-                    esquema = sheet.cell(row=fila, column=2).value
-                    formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))                    
+                    paquete, _, subproceso = objeto.partition(".")
+                    if noHayPunto:
+                        paquete , subproceso = "", objeto
+                    formatearCelda(sheet.cell(row=fila, column = 7, value = paquete)) 
+                    formatearCelda(sheet.cell(row=fila, column = 8, value = subproceso))                      
                 formatearCelda(sheet.cell(row=fila, column = 9, value = sentencia))
                 formatearCelda(sheet.cell(row=fila, column = 10, value = tablas.count(tablaori))) 
-                if sentencia == "EXECUTE":
-                    esquema, _, objeto = objeto.partition(".")
-                    if esquema != "" and objeto != "":
-                        formatearCelda(sheet.cell(row=fila, column = 7, value = esquema)) 
-                        formatearCelda(sheet.cell(row=fila, column = 8, value = objeto))  
-                    else:
-                        formatearCelda(sheet.cell(row=fila, column = 8, value = procesoInterno))              
+              
+                           
                 sheet.row_dimensions[fila].height = 1125/100
                 fila += 1
 

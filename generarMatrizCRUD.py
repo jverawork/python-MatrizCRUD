@@ -9,6 +9,7 @@
 import gestionarExcel  
 import analizarCodigo
 import manejoArchivos
+import buscarOperaciones
 from tip_estructuras import hm_operaciones, hm_procesos, hm_paquete
 
 import afinarCodigo
@@ -26,7 +27,7 @@ def main():
     global hm_paquete 
     codplsql = manejoArchivos.abrir_archivo(archivoSQL)
     codplsql = afinarCodigo.limpiar_comentarios(codplsql)
-    codplsql = afinarCodigo.sustituirArroba(codplsql)
+    codplsql = buscarOperaciones.sustituirArroba(codplsql)
     codplsql_remanente = analizarCodigo.segmentarCodigo(codplsql.upper())
     
     analizarCodigo.analizarOperacionesEnProcesos()
@@ -34,7 +35,7 @@ def main():
     hm_paquete["NOMBRE_PAQUETE"] = analizarCodigo.obtenerNombrePaquete(codplsql_remanente)[1] 
     hm_paquete["TIPO"]= "PACKAGE BODY" 
     hm_paquete["CODIGO"]= codplsql_remanente    
-    #analizarCodigo.encontrarOperaciones(codplsql_remanente, hm_paquete, hm_paquete["LISTA_PROCESOS"])    
+    #analizarCodigo.analizarOperacionesEnCuerpo()    
 
     #hm_paquete["VARIABLES"]  = analizarCodigo.buscarVariables(hm_paquete["NOMBRE_PAQUETE"], 1, codplsql_remanente)    
     #prepararDatos()

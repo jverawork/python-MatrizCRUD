@@ -5,6 +5,3 @@ def limpiar_comentarios(textosql):
     textosql4 = re.sub(r'\n\s*\n', '\n', textosql3)
     return textosql4
 
-def sustituirArroba(codigo_plsql):
-    codigo_plsql = codigo_plsql.replace("@","<ARROBA>")
-    return codigo_plsql

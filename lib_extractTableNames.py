@@ -5,7 +5,7 @@ from sqlparse.sql import IdentifierList, Identifier
 from sqlparse.tokens import Keyword, DML
 from sqlparse import tokens as T 
 
-ALL_JOIN_TYPE = ('LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL JOIN', 'LEFT OUTER JOIN', 'FULL OUTER JOIN','WITH')
+ALL_JOIN_TYPE = ('LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL JOIN', 'LEFT OUTER JOIN', 'FULL OUTER JOIN','WITH', 'ON', 'AND')
 
 def is_subselect(parsed):
     if not parsed.is_group:
@@ -17,8 +17,8 @@ def is_subselect(parsed):
 
 def extract_from_part(parsed, nivel = None):
     from_seen = False
-    for item in parsed.tokens:
-        #print(f"nivel {nivel} {item}")
+    for item in parsed.tokens:        
+        #print(nivel, [' ' for t in range(nivel)],"->",item, " * ", item.ttype)
         if item.is_group:
             #print(f"item.is_group {item}")
             for x in extract_from_part(item, nivel + 1):
@@ -31,19 +31,18 @@ def extract_from_part(parsed, nivel = None):
                 #print("hay subselects")
                 for x in extract_from_part(item, nivel + 1):
                     yield x
-            elif item.ttype is Keyword and item.value.upper() in ['ORDER BY', 'GROUP', 'BY', 'HAVING', 'GROUP BY', 'UNION ALL', "INTERSECT", "EXCEPT"]:
+            elif item.ttype is Keyword and item.value in ['ORDER BY', 'GROUP', 'BY', 'HAVING', 'GROUP BY', 'UNION ALL', "INTERSECT", "EXCEPT"]:
                 from_seen = False
                 StopIteration
             else:
                 yield item
-        if item.ttype is Keyword and item.value.upper() == 'FROM':
+        if item.ttype is Keyword and item.value == 'FROM':
             from_seen = True
 
 
       
 
 def extract_table_identifiers(token_stream):
-    #print(f"token_stream {str(token_stream)}")
     for item in token_stream:
         #print(f"item : {item}")
         if isinstance(item, IdentifierList):            
@@ -84,27 +83,36 @@ def extract_join_part(parsed):
                 continue
             else:
                 yield item
-        if item.ttype is Keyword and item.value.upper in ALL_JOIN_TYPE:
+        if item.ttype is Keyword and item.value in ALL_JOIN_TYPE:
             yield item.value
 
 def extract_tables(sql):
-    # let's handle multiple statements in one sql string
+    #print("inicio")
     extracted_tables = []
     statements = list(sqlparse.parse(sql))
-    #print([str(t) for t in statements[0].tokens if t.ttype is None][2])
-    parsed_statements = sqlparse.parse(sql)
 
     #print("================================")
     for statement in statements:
         if statement.get_type() != 'UNKNOWN':
             stream = extract_from_part(statement, 1)
             #extracted_tables.append(set(list(extract_table_identifiers(stream))))
-
             extracted_tables.append(list(extract_table_identifiers(stream)))#es para que se repita las tablas en select con union all
-            #print(statement.get_type())
-            #print(stream)
+
     #print(extracted_tables)    
-    join_stream = extract_join_part(statements[0])
+    #join_stream = extract_join_part(statements[0])    
+    #print(list(join_stream))
+    tablas = []
+    tokens = sql.split()
+    #for tabla in set([elemento.split()[0] for elemento in list(itertools.chain(join_stream,*extracted_tables))]):
+    #print(extracted_tables)
+    listaTablas = [elemento for elemento in list(extracted_tables[0]) if elemento not in ALL_JOIN_TYPE]
+    #print(listaTablas)
+    for tabla in set([elemento.split()[0] for elemento in listaTablas ]):
+    #for tabla in set([elemento.split()[0] for elemento in list(itertools.chain(*extracted_tables))]):
+        ocurrencias = [p for p in tokens if p == tabla]
+        tablas.extend(ocurrencias)
+    #print(tablas)                
+    return tablas
     #return list(itertools.chain(join_stream,*extracted_tables))
-    return [elemento.split()[0] for elemento in list(itertools.chain(join_stream,*extracted_tables))]
+    #return [elemento.split()[0] for elemento in list(itertools.chain(join_stream,*extracted_tables))]
     #return list(itertools.chain(*extracted_tables))+list(join_stream)
