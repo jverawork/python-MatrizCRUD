@@ -90,7 +90,7 @@ def extract_tables(sql):
     #print("inicio")
     extracted_tables = []
     statements = list(sqlparse.parse(sql))
-
+    #statements[0]._pprint_tree()
     #print("================================")
     for statement in statements:
         if statement.get_type() != 'UNKNOWN':
@@ -116,3 +116,26 @@ def extract_tables(sql):
     #return list(itertools.chain(join_stream,*extracted_tables))
     #return [elemento.split()[0] for elemento in list(itertools.chain(join_stream,*extracted_tables))]
     #return list(itertools.chain(*extracted_tables))+list(join_stream)
+
+from sqlparse import keywords
+from sqlparse.lexer import Lexer
+
+lex = Lexer.get_default_instance()
+lex.clear()
+
+my_regex = (r'[+/#%^&|^-]+', sqlparse.tokens.Operator)
+lex.set_SQL_REGEX(
+keywords.SQL_REGEX[:47]
++ [my_regex]
+)
+
+my_regex = (r'\w*(@|##|#)[A-ZÀ-Ü]\w+', sqlparse.tokens.Name)
+lex.set_SQL_REGEX(
+keywords.SQL_REGEX[:18]
++ [my_regex]
++ keywords.SQL_REGEX[19:]
+)
+
+lex.add_keywords(keywords.KEYWORDS_COMMON)
+lex.add_keywords(keywords.KEYWORDS_ORACLE)
+lex.add_keywords(keywords.KEYWORDS)

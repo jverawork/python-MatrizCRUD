@@ -15,14 +15,15 @@ def log(nombreProceso, nivel, operacion, codigo=None, lista=None, funcion=None):
             print("===Variables=====\n")
             print(operacion["VARIABLES"])
             print(operacion["VARIABLES-DBLINK"])            
-        elif nombreProceso is not None : 
-            print("===Proceso====="+nombreProceso+"\n")
-        elif codigo is not None and logPrintCode: 
-            print("===codigo=====\n")
-            print(codigo)
-        if lista is not None : 
-            print("===lista=====")
-            print(lista) 
+        else:
+            if nombreProceso is not None : 
+                print("===Proceso====="+nombreProceso+"\n")
+            if codigo is not None and logPrintCode: 
+                print("===codigo=====\n")
+                print(codigo)
+            if lista is not None : 
+                print("===lista=====")
+                print(lista) 
         print("**********************************"+("" if funcion is None else funcion))
 
 def logError(nombreProceso, operacion, codigo=None, lista=None, funcion=None, error=None):

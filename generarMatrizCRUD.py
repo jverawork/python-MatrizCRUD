@@ -10,7 +10,7 @@ import gestionarExcel
 import analizarCodigo
 import manejoArchivos
 import buscarOperaciones
-from tip_estructuras import hm_operaciones, hm_procesos, hm_paquete
+from tip_estructuras import hm_paquete
 
 import afinarCodigo
 import util_log
@@ -18,26 +18,27 @@ import util_log
 archivoSQL   = 'util_fuentesSQL.pkb'
 archivoExcel = "util_matrizCRUD2.xlsx"
 
-util_log.nombre_ProcesoAuditar = "SAL_REPLICAAUDIMED_P"
+util_log.nombre_ProcesoAuditar = "PQ_OWNER.CRE_DEBITOAUTOMATICOPQ_PKG"
 util_log.auditar =  False 
-util_log.logNivel = 1
+util_log.logNivel = 4
 util_log.logPrintCode = False
 
 def main():     
     global hm_paquete 
     codplsql = manejoArchivos.abrir_archivo(archivoSQL)
     codplsql = afinarCodigo.limpiar_comentarios(codplsql)
-    codplsql = buscarOperaciones.sustituirArroba(codplsql)
+    #codplsql = buscarOperaciones.sustituirArroba(codplsql)
     codplsql_remanente = analizarCodigo.segmentarCodigo(codplsql.upper())
     
     analizarCodigo.analizarOperacionesEnProcesos()
 
-    hm_paquete["NOMBRE_PAQUETE"] = analizarCodigo.obtenerNombrePaquete(codplsql_remanente)[1] 
+    hm_paquete["NOMBRE_PROCESO"] = analizarCodigo.obtenerNombrePaquete(codplsql_remanente)[1] 
     hm_paquete["TIPO"]= "PACKAGE BODY" 
-    hm_paquete["CODIGO"]= codplsql_remanente    
-    #analizarCodigo.analizarOperacionesEnCuerpo()    
+    hm_paquete["CODIGO"]= codplsql_remanente   
+    
+    analizarCodigo.analizarOperacionesEnCuerpo()    
 
-    #hm_paquete["VARIABLES"]  = analizarCodigo.buscarVariables(hm_paquete["NOMBRE_PAQUETE"], 1, codplsql_remanente)    
+    #hm_paquete["VARIABLES"]  = analizarCodigo.buscarVariables(hm_paquete["NOMBRE_PROCESO"], 1, codplsql_remanente)    
     #prepararDatos()
     gestionarExcel.armarExcel(hm_paquete, archivoExcel,"Body")
     

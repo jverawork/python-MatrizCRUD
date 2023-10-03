@@ -7,7 +7,7 @@ import re
 import util_log
 
 #import conexion
-camposPaqueteAImprimir = ["TIPO", "NOMBRE_PAQUETE", "VARIABLES"]
+camposPaqueteAImprimir = ["TIPO", "NOMBRE_PROCESO", "VARIABLES"]
 camposProcesoAImprimir = ["TIPO", "NOMBRE_PROCESO", "VARIABLES", "PARAMETROS"]
 camposOperacionesAImprimir = ["SELECT", "INSERT", "DELETE" , "UPDATE", "MERGE"]
 
@@ -23,14 +23,13 @@ def formatearCelda(celda):
 
 def registrarNombrePaquete(hm_paquete, fila, sheet):
     formatearCelda(sheet.cell(row=fila, column = 1, value = hm_paquete["TIPO"]))
-    esquema, _, objeto = hm_paquete["NOMBRE_PAQUETE"].partition(".")
+    esquema, _, objeto = hm_paquete["NOMBRE_PROCESO"].partition(".")
     formatearCelda(sheet.cell(row=fila, column = 2, value = esquema))
     formatearCelda(sheet.cell(row=fila, column = 3, value = objeto))
 
 def armarExcel(hm_paquete,archivo, hoja):
     workbook = load_workbook(archivo)
-    sheet = workbook[hojaBody]
-    row_num = 2
+    sheet = workbook[hojaBody]    
     
     table = sheet.tables[tablaDatos]
     table.auto_filter = None
@@ -47,9 +46,28 @@ def armarExcel(hm_paquete,archivo, hoja):
     
     sheet.delete_rows((ref_filaini + 2), ref_filafin-ref_filaini)
     workbook.active
-
+    #print(hm_paquete['VARIABLES'])
     fila = ref_filaini + 1
-    for oper_paquete in set(hm_paquete['VARIABLES']):
+    listaVariables = [cadena if '.' not in cadena else '.'.join(cadena.split('.')[:2]) for cadena in hm_paquete['VARIABLES']]
+    for oper_paquete in set(listaVariables):
+        #sheet.insert_rows(fila+1,1)
+        registrarNombrePaquete(hm_paquete, fila, sheet)
+
+        try:
+            esquema = oper_paquete.split(".")[0]
+            objeto = oper_paquete.split(".")[1]
+        except Exception as e:
+            util_log.logError(hm_paquete["NOMBRE_PROCESO"], hm_paquete, None, None, "gestionarExcel.armarExcel\n"+oper_paquete, e)
+
+        formatearCelda(sheet.cell(row=fila, column = 6, value = esquema))
+        formatearCelda(sheet.cell(row=fila, column = 7, value = objeto))
+        formatearCelda(sheet.cell(row=fila, column = 9, value = "VARIABLES"))
+        contador = sum(1 for elemento in listaVariables if elemento.startswith(esquema+"."+objeto))
+        formatearCelda(sheet.cell(row=fila, column = 10, value = contador))      
+        sheet.row_dimensions[fila].height = 1125/100
+        fila += 1    
+    
+    for oper_paquete in set(hm_paquete['VARIABLES-DBLINK']):
         #sheet.insert_rows(fila+1,1)
         registrarNombrePaquete(hm_paquete, fila, sheet)
         esquema, _, objeto = oper_paquete.partition(".")
@@ -58,8 +76,8 @@ def armarExcel(hm_paquete,archivo, hoja):
         formatearCelda(sheet.cell(row=fila, column = 9, value = "VARIABLES"))
         formatearCelda(sheet.cell(row=fila, column = 10, value = hm_paquete['VARIABLES'].count(oper_paquete)))      
         sheet.row_dimensions[fila].height = 1125/100
-        fila += 1    
-
+        fila += 1   
+    
     for i in range(len(hm_paquete['LISTA_PROCESOS'])):
         operacion = hm_paquete['LISTA_PROCESOS'][i]
         registrarNombrePaquete(hm_paquete, fila, sheet)
@@ -69,6 +87,7 @@ def armarExcel(hm_paquete,archivo, hoja):
         #listaUnicos = set(['.'.join(cadena.split('.')[:-1]) for cadena in operacion['PARAMETROS']])
         listaUnicos = [cadena if '.' not in cadena else '.'.join(cadena.split('.')[:2]) for cadena in operacion['PARAMETROS']]
         esquemaPadre = ''
+        #print(operacion["NOMBRE_PROCESO"]," ",operacion["TIPO"]," ",operacion["PARAMETROS"])
         for oper_proceso in set(listaUnicos):
             registrarNombrePaquete(hm_paquete, fila, sheet)
             formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
@@ -102,7 +121,8 @@ def armarExcel(hm_paquete,archivo, hoja):
                 fila += 1  
         #VARIABLES
         listaVariables = [cadena if '.' not in cadena else '.'.join(cadena.split('.')[:2]) for cadena in operacion['VARIABLES']]        
-        util_log.log(operacion["NOMBRE_PROCESO"], 4, None, None, listaVariables, "gestionarExcel.armarExcel")          
+        util_log.log(operacion["NOMBRE_PROCESO"], 4, None, None, listaVariables, "gestionarExcel.armarExcel")    
+            
         for oper_proceso in set(listaVariables):
             registrarNombrePaquete(hm_paquete, fila, sheet)
             formatearCelda(sheet.cell(row=fila, column=4, value=operacion["TIPO"]))
@@ -174,7 +194,7 @@ def armarExcel(hm_paquete,archivo, hoja):
 #
     #for sentencia, tablas in hm_paquete["OPERACIONES"].items():        
     #    for tabla in tablas: 
-    #        sheet.cell(row=row_num, column=1, value=hm_paquete["NOMBRE_PAQUETE"])            
+    #        sheet.cell(row=row_num, column=1, value=hm_paquete["NOMBRE_PROCESO"])            
     #        sheet.cell(row=row_num, column=3, value=hm_paquete["TIPO"])
     #        sheet.cell(row=row_num, column=4, value=tabla)        
     #        sheet.cell(row=row_num, column=5, value=sentencia)
@@ -233,7 +253,7 @@ def armarExcelconDataFrame(hm_paquete,archivo, hoja):
     #    for sentencia, tablas in operacion["OPERACIONES"].items():        
     #        for tabla in tablas: 
     #            sheet.insert_rows(row_num, amount=1)
-    #            sheet.cell(row=row_num, column=1, value=hm_paquete["NOMBRE_PAQUETE"])
+    #            sheet.cell(row=row_num, column=1, value=hm_paquete["NOMBRE_PROCESO"])
     #            sheet.cell(row=row_num, column=2, value=operacion["NOMBRE_PROCESO"])
     #            sheet.cell(row=row_num, column=3, value=operacion["TIPO"])
     #            sheet.cell(row=row_num, column=4, value=tabla)        
@@ -242,7 +262,7 @@ def armarExcelconDataFrame(hm_paquete,archivo, hoja):
 #
     #for sentencia, tablas in hm_paquete["OPERACIONES"].items():        
     #    for tabla in tablas: 
-    #        sheet.cell(row=row_num, column=1, value=hm_paquete["NOMBRE_PAQUETE"])            
+    #        sheet.cell(row=row_num, column=1, value=hm_paquete["NOMBRE_PROCESO"])            
     #        sheet.cell(row=row_num, column=3, value=hm_paquete["TIPO"])
     #        sheet.cell(row=row_num, column=4, value=tabla)        
     #        sheet.cell(row=row_num, column=5, value=sentencia)

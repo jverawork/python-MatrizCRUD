@@ -17,7 +17,7 @@ CREATE OR REPLACE PACKAGE BODY PQ_OWNER.CRE_DEBITOAUTOMATICOPQ_PKG IS
     G_DIAACTUALIZACESA         PQ_OWNER.CRE_DETCATALOGOPQ_TBL.DP_VALNUMDETCATALOGO%TYPE;            
     G_DIAEJECUTADEBITO         PQ_OWNER.CRE_DETCATALOGOPQ_TBL.DP_VALNUMDETCATALOGO%TYPE;
     G_DIAEJECUTADESBLOQUEO    PQ_OWNER.CRE_DETCATALOGOPQ_TBL.DP_VALNUMDETCATALOGO%TYPE;
-    
+    variable var.tabl@dblink;
     G_CODPROCESOBIT            IESS_OWNER.HLPROTNOMPACKAGE.CODPROC%TYPE;
     G_ID                    IESS_OWNER.HLPROTBITOPE.ID%TYPE;        
         
@@ -46,7 +46,7 @@ CREATE OR REPLACE PACKAGE BODY PQ_OWNER.CRE_DEBITOAUTOMATICOPQ_PKG IS
     K_ENTER                CONSTANT VARCHAR2 (50) := CHR (13) || CHR (10);
     
 
-
+    
     
 ----------------------------------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------------------------
